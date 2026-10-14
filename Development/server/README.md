@@ -11,8 +11,9 @@ invokes Mojang's bundled launcher in the existing VM. It does not spawn a
 second Java process. The initial version also requires `eula=true` in the
 server's writable working directory; it never accepts the EULA automatically.
 `native/minecraft_server.cpp` embeds the existing PS5 JVM, defines the
-bootstrap class from the app assets, changes to writable storage, and records
-server output under `/download0/minecraft/server.log`.
+bootstrap class from the app assets, sets the Java working directory to
+`/data/minecraft` (without calling the sandbox-denied native `chdir`), and
+records server output under `/data/minecraft/server.log`.
 
 The server artifact can be fetched and checksum-verified from Mojang's version
 manifest with:
@@ -48,6 +49,6 @@ bash tools/build_ps5_server.sh
 
 The build places the unsigned homebrew title folder at `dist/PPSA99873`. It
 does not include Mojang's server JAR. Copy the official JAR to
-`/download0/minecraft/server.jar` on the console. Review the EULA yourself and
-write `eula=true` to `/download0/minecraft/eula.txt` only if you agree. The
-server log is written to `/download0/minecraft/server.log`.
+`/data/minecraft/server.jar` on the console. Review the EULA yourself and
+write `eula=true` to `/data/minecraft/eula.txt` only if you agree. The
+server log is written to `/data/minecraft/server.log`.

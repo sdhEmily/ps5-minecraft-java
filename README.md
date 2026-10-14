@@ -52,7 +52,7 @@ Java loopback, outbound LAN TCP/UDP and forward DNS now pass in the runtime repo
 
 The first target is the official **Minecraft Java 26.1.1 dedicated server**, which requires Java 25. The [server bootstrap notes](Development/server/README.md) describe how the embedded VM will load its bundled entry point. The [download helper](tools/fetch_server.py) resolves Mojang's official version manifest and verifies the server JAR checksum. Server software is downloaded locally and is not committed.
 
-The PS5 JNI title and writable server setup now build from source. The app expects the official server JAR at `/download0/minecraft/server.jar`; its first launch requires an explicit `eula=true` in `/download0/minecraft/eula.txt`. It never accepts the EULA automatically. Actual server startup, world creation and console behavior still need validation on PS5.
+The PS5 JNI title and writable server setup now build from source. The app expects the official server JAR at `/data/minecraft/server.jar`; its first launch requires an explicit `eula=true` in `/data/minecraft/eula.txt`. It never accepts the EULA automatically. Actual server startup, world creation and console behavior still need validation on PS5.
 
 ## Roadmap
 

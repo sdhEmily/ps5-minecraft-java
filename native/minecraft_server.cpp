@@ -4,6 +4,7 @@
 #include <cerrno>
 #include <cstdio>
 #include <cstring>
+#include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -41,8 +42,8 @@ __attribute__((noinline)) char *__wrap_strdup(const char *s) { return __real_str
 }
 
 namespace {
-constexpr const char *kRoot = "/download0/minecraft";
-constexpr const char *kServerJar = "/download0/minecraft/server.jar";
+constexpr const char *kRoot = "/data/minecraft";
+constexpr const char *kServerJar = "/data/minecraft/server.jar";
 constexpr const char *kBootstrapClass =
     "/app0/assets/java25/classes/ps5/minecraft/server/MinecraftServerBootstrap.class";
 constexpr const char *kBootstrapName = "ps5/minecraft/server/MinecraftServerBootstrap";
@@ -53,9 +54,20 @@ void log_line(const char *message) {
 }
 
 bool make_directory(const char *path) {
-    if (mkdir(path, 0700) == 0 || errno == EEXIST) return true;
-    std::fprintf(stderr, "PS5_MINECRAFT_SERVER mkdir %s failed errno=%d\n", path, errno);
-    return false;
+    if (mkdir(path, 0777) != 0 && errno != EEXIST) {
+        std::fprintf(stderr, "PS5_MINECRAFT_SERVER mkdir %s failed errno=%d\n", path, errno);
+        return false;
+    }
+    return true;
+}
+
+void make_directory_accessible(const char *path) {
+    // This directory is also used to transfer the server JAR and read logs
+    // through the user's FTP/file manager account. Correct permissions even
+    // when it was created by an earlier build with mode 0700.
+    if (chmod(path, 0777) != 0) {
+        std::fprintf(stderr, "PS5_MINECRAFT_SERVER chmod %s failed errno=%d\n", path, errno);
+    }
 }
 
 bool read_bootstrap(jbyte **bytes, jsize *length) {
@@ -102,19 +114,27 @@ void describe_exception(JNIEnv *env, const char *stage) {
 } // namespace
 
 int main() {
-    if (!make_directory(kRoot) || !make_directory("/download0/minecraft/tmp")) return 1;
-    if (chdir(kRoot) != 0) {
-        std::fprintf(stderr, "PS5_MINECRAFT_SERVER chdir failed errno=%d\n", errno);
-        return 1;
-    }
+    if (!make_directory(kRoot)) return 0;
 
-    FILE *log = std::freopen("/download0/minecraft/server.log", "a", stdout);
-    if (log) std::freopen("/download0/minecraft/server.log", "a", stderr);
+    FILE *log = std::freopen("/data/minecraft/server.log", "a", stdout);
+    if (log) std::freopen("/data/minecraft/server.log", "a", stderr);
     log_line("starting Java 25 VM");
-    if (access(kServerJar, R_OK) != 0) {
-        log_line("copy the official server JAR to /download0/minecraft/server.jar");
-        return 2;
+    make_directory_accessible(kRoot);
+
+    if (!make_directory("/data/minecraft/tmp")) return 0;
+    make_directory_accessible("/data/minecraft/tmp");
+
+    // On PS5, access() can report a sandbox denial even when opening the file
+    // for reading is allowed. Check the operation the JVM will actually need.
+    errno = 0;
+    FILE *server_jar = std::fopen(kServerJar, "rb");
+    if (!server_jar) {
+        std::fprintf(stderr,
+                     "PS5_MINECRAFT_SERVER cannot open %s for reading errno=%d\n",
+                     kServerJar, errno);
+        return 0;
     }
+    std::fclose(server_jar);
 
     JavaVMOption options[] = {
         {const_cast<char *>("-Xint"), nullptr},
@@ -127,10 +147,12 @@ int main() {
         {const_cast<char *>("-XX:+UseSerialGC"), nullptr},
         {const_cast<char *>("-XX:ActiveProcessorCount=4"), nullptr},
         {const_cast<char *>("-XX:-UsePerfData"), nullptr},
-        {const_cast<char *>("-XX:ErrorFile=/download0/minecraft/hs_err_java25_%p.log"), nullptr},
+        {const_cast<char *>("-XX:ErrorFile=/data/minecraft/hs_err_java25_%p.log"), nullptr},
         {const_cast<char *>("-Djava.class.path=/app0/assets/java25/classes"), nullptr},
-        {const_cast<char *>("-Djava.io.tmpdir=/download0/minecraft/tmp"), nullptr},
-        {const_cast<char *>("-Duser.home=/download0/minecraft"), nullptr},
+        {const_cast<char *>("-Djava.io.tmpdir=/data/minecraft/tmp"), nullptr},
+        {const_cast<char *>("-Duser.home=/data/minecraft"), nullptr},
+        {const_cast<char *>("-Duser.dir=/data/minecraft"), nullptr},
+        {const_cast<char *>("-Dsun.nio.fs.chdirAllowed=true"), nullptr},
         {const_cast<char *>("-Duser.timezone=UTC"), nullptr},
     };
     JavaVMInitArgs args{};

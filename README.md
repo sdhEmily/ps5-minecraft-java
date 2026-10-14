@@ -13,7 +13,7 @@
 
 A homebrew project exploring **Minecraft Java Edition on PlayStation 5** — starting with a dedicated server, then working toward the client, controller support and mod compatibility.
 
-> **Status: planning and runtime groundwork.** This repository currently contains project documentation. There is no playable Minecraft build or server release yet.
+> **Status: first PS5 server package builds.** The native title embeds the Java 25 runtime and targets Mojang's official 26.1.1 server JAR. Minecraft has not yet been launched on a console.
 
 ## The goal
 
@@ -48,6 +48,12 @@ The runtime project has these **console-tested Java milestones** on PS5 firmware
 
 Java loopback, outbound LAN TCP/UDP and forward DNS now pass in the runtime repository. Inbound LAN server acceptance and TLS remain separate tests. These results establish runtime groundwork; Minecraft itself has not been tested. The current Java bootstrap uses interpreter mode, and JIT performance remains future work.
 
+## First server bootstrap
+
+The first target is the official **Minecraft Java 26.1.1 dedicated server**, which requires Java 25. The [server bootstrap notes](Development/server/README.md) describe how the embedded VM will load its bundled entry point. The [download helper](tools/fetch_server.py) resolves Mojang's official version manifest and verifies the server JAR checksum. Server software is downloaded locally and is not committed.
+
+The PS5 JNI title and writable server setup now build from source. The app expects the official server JAR at `/download0/minecraft/server.jar`; its first launch requires an explicit `eula=true` in `/download0/minecraft/eula.txt`. It never accepts the EULA automatically. Actual server startup, world creation and console behavior still need validation on PS5.
+
 ## Roadmap
 
 ### 1 · Prove the server foundation
@@ -55,7 +61,8 @@ Java loopback, outbound LAN TCP/UDP and forward DNS now pass in the runtime repo
 - [x] Validate the Java runtime's TCP/UDP loopback and NIO selector probes on PS5.
 - [x] Validate outbound Java LAN TCP/UDP and forward DNS on PS5.
 - [ ] Validate inbound LAN server connections and broader dependency/class-path loading on PS5.
-- [ ] Choose a target Minecraft version and check its Java and native dependencies.
+- [x] Choose Minecraft 26.1.1 and confirm its Java 25 requirement.
+- [x] Build the PS5 JNI server title; keep the user-supplied server JAR separate from the package.
 - [ ] Launch a vanilla dedicated server and reach a ready state.
 - [ ] Create, save, stop and reload a test world.
 - [ ] Connect from another device and verify sustained ticks and clean shutdown.
@@ -85,4 +92,4 @@ As game-specific tests pass on the actual PS5, this repository will gain frozen 
 
 Start with the **[Java port README](https://github.com/mateo-cogeanu/ps5-java25-homebrew#readme)** for the current runtime status, passing probe downloads and build notes.
 
-Minecraft-specific source and progress will be added here as that work begins. The first target is a reproducible vanilla server milestone; client and mod support follow after their prerequisites are tested.
+Minecraft-specific source and progress are now being added under `Development/server`. The first target is a reproducible vanilla server milestone; client and mod support follow after their prerequisites are tested.

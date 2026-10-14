@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="64" fill="#111827"/>
+  <path d="M256 76 424 173v194l-168 97-168-97V173z" fill="#374151"/>
+  <path d="m256 76 168 97-168 97-168-97z" fill="#4f8d45"/>
+  <path d="M88 173 256 270v194L88 367z" fill="#765033"/>
+  <path d="m424 173-168 97v194l168-97z" fill="#5b3e2a"/>
+  <path d="m256 106 116 67-116 67-116-67z" fill="#69ad57"/>
+  <path d="m117 191 119 69v147l-119-69z" fill="#8a603c"/>
+  <path d="m395 191-119 69v147l119-69z" fill="#68472f"/>
+  <path d="m188 152 27 16-18 11-28-16zM278 132l25 14-20 12-25-14zM336 173l24 14-21 12-24-14z" fill="#98d477"/>
+  <path d="m149 232 34 20v19l-34-20zM204 265l23 13v20l-23-13zM310 293l27-16v19l-27 16zM352 269l24-14v19l-24 14z" fill="#9b7048"/>
+  <text x="256" y="490" text-anchor="middle" font-family="Arial,sans-serif" font-size="30" font-weight="700" fill="#f9fafb">JAVA 25</text>
+</svg>

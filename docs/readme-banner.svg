@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1200" height="310" viewBox="0 0 1200 310" role="img" aria-labelledby="title description">
   <title id="title">Minecraft Java on PS5</title>
-  <desc id="description">A community homebrew project. Server first, client next. Powered by the separate Java runtime port.</desc>
+  <desc id="description">A community homebrew project with a buildable Minecraft 26.1.1 server package for the PS5 Java 25 runtime.</desc>
   <defs>
     <linearGradient id="background" x2="1" y2="1"><stop stop-color="#122720"/><stop offset="1" stop-color="#081610"/></linearGradient>
     <linearGradient id="grass"><stop stop-color="#a5e1a2"/><stop offset="1" stop-color="#5ba783"/></linearGradient>
@@ -19,7 +19,7 @@
     <text x="48" y="142" font-size="65" font-weight="700" letter-spacing="-2" fill="#f1f7f2">Minecraft Java <tspan fill="#a5dfb5">on PS5</tspan></text>
     <text x="51" y="182" font-size="21" fill="#b3ccbc">Server first. Client next. A world built one milestone at a time.</text>
     <rect x="50" y="225" width="190" height="35" rx="17" fill="#243e30" stroke="#3d634c"/>
-    <text x="72" y="247" font-size="14" font-weight="600" fill="#bbdfc1">EARLY DEVELOPMENT</text>
-    <text x="267" y="247" font-size="16" fill="#92b09d">Built on the separate PS5 Java 25 runtime port</text>
+    <text x="72" y="247" font-size="14" font-weight="600" fill="#bbdfc1">SERVER PACKAGE BUILDS</text>
+    <text x="290" y="247" font-size="16" fill="#92b09d">Minecraft 26.1.1 · Java 25 runtime</text>
   </g>
 </svg>

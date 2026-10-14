@@ -1,10 +1,10 @@
 {
   "title_id": "PPSA99874",
-  "app_version": "01.000.008",
+  "app_version": "01.000.009",
   "minecraft": "26.3",
   "java_major": 25,
-  "package_sha256": "015fead1662e7a88181e6c707048d898d5b65cc85a5660b6da80afd347fb2ffe",
-  "console": "pending: 01.000.007 identifies legacy-verifier OOM during JOML Matrix3f verification and logging config lookup failure",
+  "package_sha256": "e71db21c034da4cbf2d2fc84cd14ecfd810c3d50621be094cbbdf894cc03e815",
+  "console": "pending: 01.000.009 moves persistent diagnostics, temp files and server workdir to /data/minecraft; console validation required",
   "host": "PASS: real vanilla readiness/save/stop at 192 MiB; 8 MiB interpreter code cache used 1044 KiB; logging XML loads from probe JAR; verifier diagnostic sanitizer checks pass",
   "package": "PASS: signature/integrity, ZIP CRC/title/version, official JAR hashes, Java25 fixtures, target timezone/CA data, no host native binaries or world/EULA file",
   "runtime_modules": [

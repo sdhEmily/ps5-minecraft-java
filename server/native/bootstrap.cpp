@@ -35,7 +35,8 @@ extern "C" int __wrap_open(const char *path,int flags,...) {
  int error=errno;
  if(fd<0 && ps5_native_trace::enabled.load() &&
     pthread_equal(ps5_native_trace::owner,pthread_self()) &&
-    !ps5_vm_trace_io_active() && path && std::strncmp(path,"/download0/",11)==0) {
+    !ps5_vm_trace_io_active() && path &&
+    std::strncmp(path,"/data/minecraft/",sizeof("/data/minecraft/")-1)==0) {
   // IO guard prevents the trace writer's own open from replacing this result.
   Ps5TraceIOScope guard;
   std::snprintf(native_open_error,sizeof(native_open_error),
@@ -47,6 +48,8 @@ extern "C" int __wrap_open(const char *path,int flags,...) {
 #endif
 namespace {
 using ps5::demo::Canvas;
+constexpr char kDataRoot[] = "/data/minecraft";
+constexpr char kWorkDir[] = "/data/minecraft/mc-server-start";
 constexpr std::uint32_t rgb(unsigned r,unsigned g,unsigned b) {return 0xff000000u|r|(g<<8)|(b<<16);}
 constexpr int test_count=5;
 const char *names[]={"Initialize embedded core runtime","Create Java 25 VM (interpreter mode)","Verify official server JARs and Java dependencies","Start flat world, wait for ready, save and stop","Destroy Java VM"};
@@ -76,6 +79,10 @@ void log_stage(const char *stage) {
 #endif
  if(startup_log) {std::fprintf(startup_log,"STAGE: %s\n",stage);std::fflush(startup_log);}
 }
+bool ensure_directory(const char *path) {
+ if(mkdir(path,0777)!=0 && errno!=EEXIST) return false;
+ return chmod(path,0777)==0;
+}
 void network_checkpoint(JNIEnv *env,jclass,jstring stage) {
  const char *utf=env->GetStringUTFChars(stage,nullptr);
  if(!utf) return;
@@ -94,7 +101,7 @@ void save_vm_failure(const char *reason) {
 #ifdef __PROSPERO__
  Ps5TraceIOScope guard;
 #endif
- int fd=open("/download0/mc-bootstrap-abort.txt",O_CREAT|O_WRONLY|O_TRUNC,0600);
+ int fd=open("/data/minecraft/mc-bootstrap-abort.txt",O_CREAT|O_WRONLY|O_TRUNC,0666);
  if(fd>=0) {
   write(fd,reason,std::strlen(reason));write(fd,"\n",1);
   const char *text=ps5_vm_diagnostics::used?ps5_vm_diagnostics::output:"No JVM formatted diagnostic captured.";
@@ -123,9 +130,9 @@ bool read_last_line(const char *path) {
  std::fclose(file);return found;
 }
 void read_previous_log() {
- read_last_line("/download0/java25-startup.log");
- read_last_line("/download0/java25-vm-trace.log");
- FILE *failure=std::fopen("/download0/mc-bootstrap-abort.txt","rb");
+ read_last_line("/data/minecraft/java25-startup.log");
+ read_last_line("/data/minecraft/java25-vm-trace.log");
+ FILE *failure=std::fopen("/data/minecraft/mc-bootstrap-abort.txt","rb");
  if(failure){size_t count=std::fread(exception_detail,1,sizeof(exception_detail)-1,failure);exception_detail[count]='\0';std::fclose(failure);}
 
 }
@@ -167,8 +174,11 @@ void skip_vm_dependents() {
 }
 void run_test(int i) {
  if(i==0) {
-  startup_log=std::fopen("/download0/java25-startup.log","a");
+  if(!ensure_directory(kDataRoot)) {result(i,errno?errno:-1309,"Cannot prepare /data/minecraft");return;}
+  if(!ensure_directory("/data/minecraft/tmp")) {result(i,errno?errno:-1309,"Cannot prepare Java temp directory");return;}
+  startup_log=std::fopen("/data/minecraft/java25-startup.log","a");
   if(!startup_log) {result(i,errno,"Cannot open persistent startup log");return;}
+  chmod("/data/minecraft/java25-startup.log",0666);
   log_stage("Begin embedded core constructors");
   size_t count=0;
   for(auto *fn=__jvm_init_array_start;fn!=__jvm_init_array_end;++fn) {if(*fn) {(*fn)();++count;}}
@@ -180,9 +190,9 @@ void run_test(int i) {
  } else if(!initialized) {
   result(i,-1301,"Initialize runtime first, then relaunch to retry");
  } else if(i==1) {
-  if(mkdir("/download0/mc-server-start",0700)!=0 && errno!=EEXIST) {result(i,errno,"Cannot create isolated server directory");return;}
+  if(!ensure_directory(kWorkDir)) {result(i,errno?errno:-1309,"Cannot create isolated server directory");return;}
   ps5_vm_diagnostics::reset();exception_detail[0]='\0';exception_page=0;
-  unlink("/download0/mc-bootstrap-abort.txt");
+  unlink("/data/minecraft/mc-bootstrap-abort.txt");
   // Check the actual read operation; access() may have different sandbox
   // permission behavior. Distinguish preflight errors from JNI returns.
   log_stage("Opening packaged Java core image");
@@ -217,14 +227,14 @@ void run_test(int i) {
    {const_cast<char *>("-XX:+UseSerialGC"),nullptr},
    {const_cast<char *>("-XX:ActiveProcessorCount=2"),nullptr},
    {const_cast<char *>("-XX:-UsePerfData"),nullptr},
-   {const_cast<char *>("-XX:ErrorFile=/download0/hs_err_java25_%p.log"),nullptr},
+   {const_cast<char *>("-XX:ErrorFile=/data/minecraft/hs_err_java25_%p.log"),nullptr},
    {const_cast<char *>(SERVER_CLASSPATH_OPTION),nullptr},
-   {const_cast<char *>("-Djava.io.tmpdir=/download0"),nullptr},
-   {const_cast<char *>("-Duser.home=/download0"),nullptr},
-   {const_cast<char *>("-Duser.dir=/download0/mc-server-start"),nullptr},
+   {const_cast<char *>("-Djava.io.tmpdir=/data/minecraft/tmp"),nullptr},
+   {const_cast<char *>("-Duser.home=/data/minecraft"),nullptr},
+   {const_cast<char *>("-Duser.dir=/data/minecraft/mc-server-start"),nullptr},
    {const_cast<char *>("-Dlog4j2.disableJmx=true"),nullptr},
    {const_cast<char *>("-Dlog4j2.configurationFile=jar:file:/app0/assets/java25/jars/ps5-server-probe.jar!/log4j2-ps5.xml"),nullptr},
-   {const_cast<char *>("-Dps5.mc.workdir=/download0/mc-server-start"),nullptr},
+   {const_cast<char *>("-Dps5.mc.workdir=/data/minecraft/mc-server-start"),nullptr},
    {const_cast<char *>("-Dps5.mc.eulaAccepted=true"),nullptr},
    // Always resolve relative paths against user.dir. UnixFileSystem then
    // skips its desktop getcwd comparison in the native title sandbox.
@@ -241,11 +251,12 @@ void run_test(int i) {
   args.nOptions=sizeof(options)/sizeof(options[0]);args.options=options;args.ignoreUnrecognized=JNI_FALSE;
   // Verify the raw diagnostic write path before entering JVM code. Each
   // VM milestone then appends a line without stdio or JVM allocation.
-  int trace_fd=open("/download0/java25-vm-trace.log",O_CREAT|O_WRONLY|O_TRUNC,0600);
+  int trace_fd=open("/data/minecraft/java25-vm-trace.log",O_CREAT|O_WRONLY|O_TRUNC,0666);
   if(trace_fd<0) {result(i,errno,"Before JVM: cannot open checkpoint trace");skip_vm_dependents();return;}
   const char begin[]="APP: entering JNI_CreateJavaVM\n";
   ssize_t traced=write(trace_fd,begin,sizeof(begin)-1);
   int trace_error=errno;close(trace_fd);
+  chmod("/data/minecraft/java25-vm-trace.log",0666);
   if(traced!=sizeof(begin)-1) {result(i,trace_error?trace_error:-1313,"Before JVM: checkpoint write failed");skip_vm_dependents();return;}
   log_stage("Calling real JNI_CreateJavaVM");
   ps5_native_trace::enable();
@@ -350,7 +361,7 @@ bool update() noexcept {
 }
 void draw(Canvas &c) noexcept {
  c.gradient(rgb(18,29,49),rgb(8,13,23));
- c.label(100,64,"Java 25 - Minecraft Server Start Probe 01.000.008",42,rgb(238,242,250));
+ c.label(100,64,"Java 25 - Minecraft Server Start Probe 01.000.009",42,rgb(238,242,250));
  c.label(103,163,"Official Minecraft 26.3 / Java 25. Authorized test world: real startup, save and stop.",24,rgb(139,153,178));
  for(int i=0;i<test_count;++i) {
   int y=220+i*82;
